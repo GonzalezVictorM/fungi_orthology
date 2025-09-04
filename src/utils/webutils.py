@@ -143,6 +143,15 @@ def batch_fetch_json(organism_ids: list, headers: dict, out_dir: str):
         executor.map(fetch_if_needed, organism_ids)
 
 def parse_portal_jsons(organism_ids: list, input_dir: str) -> pd.DataFrame:
+    """
+    Parses the JSON files obtained from mycocosm and returns them as a DataFrame.
+
+    Args:
+        organism_ids (list): The list of organisms found in the Mycocosm table.
+
+    Returns:
+        pd.DataFrame: The table data as a pandas DataFrame.
+    """
     found = []
     if not os.path.exists(input_dir):
         logging.error(f"No {input_dir} folder found. Please run fetch_all_files() first.")

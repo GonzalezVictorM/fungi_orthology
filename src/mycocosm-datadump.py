@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(mes
 MYCOCOSM_DATA_DIR = os.path.join(DATA_DIR, 'mycocosm_data')
 JSON_DIR = os.path.join(MYCOCOSM_DATA_DIR, 'json_files')
 PORTALS_TABLE_PATH = os.path.join(MYCOCOSM_DATA_DIR, 'mycocosm_fungi_data.csv')
-MYCOCOSM_FILES_METADATA_PATH = os.path.join(MYCOCOSM_DATA_DIR, 'mycocosm_fungi_files_metadata.csv')
+MYCOCOSM_FILES_METADATA_PATH = os.path.join(MYCOCOSM_DATA_DIR, 'mycocosm_files_metadata.csv')
 
 # Authentication headers
 headers = {
