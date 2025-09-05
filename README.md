@@ -2,26 +2,6 @@
 
 This project automates the retrieval and processing of fungal genome metadata from the [JGI MycoCosm](https://mycocosm.jgi.doe.gov/fungi/fungi.info.html) portal. It downloads the genome table, fetches file metadata for published organisms, and exports the results to CSV.
 
-## Directory Structure
-
-```
-fungi_orthology/
-│
-├── config.py
-├── credentials.py
-├── src/
-│   ├── mycocosm-datadump.py
-│   └── utils/
-│       ├── webutils.py
-│       └── wrangleutils.py
-│
-└── local_data/
-    └── mycocosm_data/
-        ├── mycocosm_fungi_data.csv
-        ├── mycocosm_fungi_files_metadata.csv
-        └── json_files/
-```
-
 ## Setup
 
 1. **Clone the repository** and navigate to the project folder.

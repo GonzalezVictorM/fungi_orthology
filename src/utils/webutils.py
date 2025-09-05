@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
 from config import JGI_API_BASE_URL, FILES_PER_PAGE, REQUEST_DELAY
+from credentials import HEADERS, COOKIES
 
 def download_mycocosm_fungi_table(url: str) -> pd.DataFrame:
     """
@@ -20,7 +21,7 @@ def download_mycocosm_fungi_table(url: str) -> pd.DataFrame:
         pd.DataFrame: The table data as a pandas DataFrame.
     """
     try:
-        response = requests.get(url)
+        response = requests.get(url, cookies=COOKIES, headers=HEADERS)
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, 'html.parser')
