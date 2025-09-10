@@ -2,20 +2,23 @@ import os
 import pandas as pd
 from Bio import SeqIO
 import re
-from config import PROCESSED_PROTEOMES_PATH, RENAMED_PROTEOMES_DIR, PROTEOME_CUSTOMLOG_PATH
+import sys
+
+# Add project root to sys.path only here
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from config import PROTEOMES_DIR, PROCESSED_PROTEOMES_PATH, RENAMED_PROTEOMES_DIR
 
 # -----------------------------
 # Configuration
 # -----------------------------
-
-input_csv = PROCESSED_PROTEOMES_PATH
-output_dir = RENAMED_PROTEOMES_DIR
-os.makedirs(output_dir, exist_ok=True)
+PROTEOME_CUSTOMLOG_PATH = os.path.join(PROTEOMES_DIR, "processed_proteomes_log_custom.csv")
+os.makedirs(RENAMED_PROTEOMES_DIR, exist_ok=True)
 
 # -----------------------------
 # Load data
 # -----------------------------
-df = pd.read_csv(input_csv)
+df = pd.read_csv(PROCESSED_PROTEOMES_PATH)
 target_portals = {"Altbr1", "Pyrtr1"}
 df = df[df["portal"].isin(target_portals)]
 
@@ -32,7 +35,7 @@ for _, row in df.iterrows():
         print(f"❌ File not found: {input_path}")
         continue
 
-    output_path = os.path.join(output_dir, f"{portal}.fasta")
+    output_path = os.path.join(RENAMED_PROTEOMES_DIR, f"{portal}.fasta")
     renamed_count = 0
     total = 0
     first_before = ""

@@ -20,8 +20,11 @@ export PATH="/scratch/project_2002833/VG/software/buscoenv/bin:$PATH"
 THREADS=$SLURM_CPUS_PER_TASK
 
 # === Define directories ===
-SEQ_DIR="local_data/proteomes/renamed"
-OUTPUT_DIR="local_data/BUSCO_results/renamed" # A new directory name
+DATA_DIR="local_data"
+DATA_DIR="$(readlink -f "$IN_DIR")"
+
+SEQ_DIR="$DATA_DIR/proteomes/renamed"
+OUTPUT_DIR="$DATA_DIR/BUSCO_results/renamed" # A new directory name
 echo "Input dir: $SEQ_DIR"
 
 # === Create output directories ===
