@@ -6,7 +6,7 @@ from Bio import SeqIO
 # Add project root to sys.path only here
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import PROTEOMES_DIR, RENAMED_PROTEOMES_DIR, CLEAN_PROTEOMES_DIR
+from config import PROTEOMES_DIR, FINAL_PROTEOMES_DIR, CLEAN_PROTEOMES_DIR
 from src.utils.wrangleutils import validate_directories
 
 # Define length limits
@@ -15,20 +15,20 @@ LOWER_LENGTH = 50
 
 def main():
     # Validate input directories
-    validate_directories([RENAMED_PROTEOMES_DIR])
+    validate_directories([FINAL_PROTEOMES_DIR])
 
     # Create output directory if missing
     os.makedirs(CLEAN_PROTEOMES_DIR, exist_ok=True)
 
     # List all FASTA files
     proteome_files = [
-        os.path.join(RENAMED_PROTEOMES_DIR, f)
-        for f in os.listdir(RENAMED_PROTEOMES_DIR)
+        os.path.join(FINAL_PROTEOMES_DIR, f)
+        for f in os.listdir(FINAL_PROTEOMES_DIR)
         if f.endswith(".fasta")
     ]
 
     if not proteome_files:
-        raise FileNotFoundError(f"No FASTA files found in {RENAMED_PROTEOMES_DIR}.")
+        raise FileNotFoundError(f"No FASTA files found in {FINAL_PROTEOMES_DIR}.")
     # Prepare CSV log
     log_path = os.path.join(PROTEOMES_DIR, "cleaned_proteomes_log.csv")
     with open(log_path, "w", newline="") as log_f:

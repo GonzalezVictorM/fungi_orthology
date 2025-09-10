@@ -17,6 +17,7 @@ DATA_DIR = os.path.join(BASE_DIR, 'local_data')
 # PORTALS_DIR = os.path.join(DATA_DIR, "portal_phylogeny")
 PROTEOMES_DIR = os.path.join(DATA_DIR, "proteomes")
 RENAMED_PROTEOMES_DIR = os.path.join(PROTEOMES_DIR, "renamed")
+FINAL_PROTEOMES_DIR = os.path.join(PROTEOMES_DIR, "final")
 CLEAN_PROTEOMES_DIR = os.path.join(PROTEOMES_DIR, "clean")
 
 
