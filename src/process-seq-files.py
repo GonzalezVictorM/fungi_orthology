@@ -5,7 +5,7 @@ import sys
 # Add project root to sys.path only here
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import PROTEOMES_DIR, SELECTED_FILES_METADATA_PATH, PROCESSED_PROTEOMES_PATH, RENAMED_PROTEOMES_DIR
+from config import PROTEOMES_DIR, PROTEOME_FILES_METADATA_PATH, PROCESSED_PROTEOMES_PATH, RENAMED_PROTEOMES_DIR
 from src.utils.wrangleutils import validate_directories, find_missing_files, rename_fasta_headers, extract_files
 
 COMPRESSED_PROTEOMES_DIR = os.path.join(PROTEOMES_DIR, "compressed")
@@ -19,7 +19,7 @@ def main():
     validate_directories([PROTEOMES_DIR, COMPRESSED_PROTEOMES_DIR])
     os.makedirs(EXTRACTED_PROTEOMES_DIR, exist_ok=True)
     os.makedirs(RENAMED_PROTEOMES_DIR, exist_ok=True)
-    proteome_data = pd.read_csv(SELECTED_FILES_METADATA_PATH)
+    proteome_data = pd.read_csv(PROTEOME_FILES_METADATA_PATH)
     proteome_file_list = os.listdir(COMPRESSED_PROTEOMES_DIR)
     expected_files = proteome_data["compressed_file"].dropna().astype(str)
     available_files = set(proteome_file_list)
