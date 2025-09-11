@@ -22,11 +22,12 @@ CLEAN_PROTEOMES_DIR = os.path.join(PROTEOMES_DIR, "clean")
 
 
 # PORTALS_TABLE_PATH = os.path.join(DATA_DIR, 'mycocosm_fungi_data.csv')
+
 # ORGANISM_IDS_PATH = os.path.join(DATA_DIR, 'selected_organism_ids.csv')
 # MYCOCOSM_FILELIST_PATH = os.path.join(DATA_DIR, 'mycocosm_data.csv')
 # ALL_FILES_METADATA_PATH = os.path.join(DATA_DIR, 'all_files_metadata.csv')
 PROTEOME_FILES_METADATA_PATH = os.path.join(DATA_DIR, 'proteomes_all_list.csv')
-PROCESSED_PROTEOMES_PATH = os.path.join(PROTEOMES_DIR, "processed_proteomes_list.csv")
+PROCESSED_PROTEOMES_PATH = os.path.join(PROTEOMES_DIR, 'processed_proteomes_list.csv')
 PROTEOME_FINAL_METADATA_PATH = os.path.join(DATA_DIR, 'proteomes_final_list.csv')
 # PROTEOME_LOG_PATH = os.path.join(PROTEOMES_DIR, "renaming_summary_log.csv")
 # PROTEOME_CUSTOMLOG_PATH = os.path.join(PROTEOMES_DIR, "renaming_custom_summary_log.csv")

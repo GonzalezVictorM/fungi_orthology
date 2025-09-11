@@ -33,7 +33,7 @@ DATA_DIR="local_data"
 DATA_DIR="$(readlink -f "$DATA_DIR")"
 
 SET_DIR="$DATA_DIR/proteomes"
-IN_DIR="$SET_DIR/final"
+IN_DIR="$SET_DIR/test"
 OUT_DIR="$DATA_DIR/interproscan_results"
 
 mkdir -p "$OUT_DIR"

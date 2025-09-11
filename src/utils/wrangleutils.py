@@ -146,3 +146,113 @@ def rename_fasta_headers(proteome_data, renamed_dir):
                 "first_id_after": "ERROR"
             })
     return renamed_file_column, log_data
+
+def build_phylogeny_data(df):
+    """
+    Extracts phylogenetic information from the DataFrame.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing organism metadata.
+
+    Returns:
+        pd.DataFrame: DataFrame with unique combinations of organism and ncbi taxonomy columns.
+    """
+    cols = ["organism"] + ["new_proteome"] + [col for col in df.columns if col.startswith("ncbi")]
+    return df.loc[:, cols].drop_duplicates()
+
+def split_phylogeny_data(phylogeny_data, missing_organisms):
+    """
+    Splits the phylogeny DataFrame into missing, complete, and incomplete subsets.
+
+    Args:
+        phylogeny_data (pd.DataFrame): DataFrame with phylogenetic and organism information.
+        missing_organisms (iterable): Organisms with missing data.
+
+    Returns:
+        tuple:
+            pd.DataFrame: Data for missing organisms.
+            pd.DataFrame: Data for organisms with complete ncbi_taxon_id.
+            pd.DataFrame: Data for organisms not in missing or complete (incomplete).
+    """
+    missing = phylogeny_data[phylogeny_data["organism"].isin(missing_organisms)]
+    complete = phylogeny_data[
+        phylogeny_data["ncbi_taxon_id"].notna() &
+        (phylogeny_data["ncbi_taxon_id"].astype(str).str.strip() != "") &
+        (phylogeny_data["ncbi_taxon_id"].astype(str).str.strip().str.len() >= 2)
+        ].drop_duplicates()
+    incomplete = phylogeny_data[
+        ~phylogeny_data["organism"].isin(list(missing_organisms) + list(complete["organism"]))
+    ].drop_duplicates()
+    return missing, complete, incomplete
+
+def find_duplicates(phylogeny_data_complete):
+    """
+    Identifies organisms with duplicate entries in the complete phylogeny data.
+
+    Args:
+        phylogeny_data_complete (pd.DataFrame): DataFrame with complete phylogeny information.
+
+    Returns:
+        tuple:
+            pd.DataFrame: Rows for organisms with duplicate entries.
+            pd.DataFrame: Rows for organisms with a single entry.
+    """
+    counts = phylogeny_data_complete.groupby("organism").size().reset_index(name="count")
+    double_organisms = counts[counts["count"] > 1]["organism"]
+    double_phylogeny = phylogeny_data_complete[phylogeny_data_complete["organism"].isin(double_organisms)]
+    single_phylogeny = phylogeny_data_complete[~phylogeny_data_complete["organism"].isin(double_organisms)]
+    return double_phylogeny, single_phylogeny
+
+def check_organism_counts(single_phylogeny, double_phylogeny, missing, incomplete, all_organisms):
+    all_organisms_series = pd.concat([
+        single_phylogeny["organism"],
+        double_phylogeny["organism"],
+        missing["organism"],
+        incomplete["organism"]
+    ])
+    all_count = len(pd.unique(all_organisms_series))
+    assert all_count == len(all_organisms), "Organism count mismatch!"
+
+
+def find_new_proteomes(
+    df: pd.DataFrame,
+    portals_table_path: str
+) -> pd.DataFrame:
+    """
+    Annotate new proteomes in the current DataFrame compared to a previous version.
+
+    Args:
+        df (pd.DataFrame): The new MycoCosm DataFrame.
+        portals_table_path (str): Path to the previous portals table CSV.
+
+    Returns:
+        pd.DataFrame: The input DataFrame with a new 'new_proteome' boolean column.
+    """
+    import warnings
+
+    if not os.path.exists(portals_table_path):
+        df['new_proteome'] = True
+        return df
+
+    old_df = pd.read_csv(portals_table_path, encoding='utf-8')
+
+    # Ensure 'portal' and 'reference' columns exist in both
+    required_cols = {'portal', 'reference'}
+    if required_cols.issubset(old_df.columns) and required_cols.issubset(df.columns):
+        old_portals = set(old_df['portal'])
+        old_portals_with_ref = set(
+            old_df[old_df['reference'].notna() & (old_df['reference'].astype(str).str.strip() != "")]['portal']
+        )
+        def is_new(row):
+            portal = row['portal']
+            has_ref = pd.notna(row['reference']) and str(row['reference']).strip() != ""
+            if portal not in old_portals:
+                return True
+            if has_ref and portal not in old_portals_with_ref:
+                return True
+            return False
+        df['new_proteome'] = df.apply(is_new, axis=1)
+    else:
+        warnings.warn("Missing 'portal' or 'reference' columns in one of the DataFrames. Marking all as new.")
+        df['new_proteome'] = True
+    return df

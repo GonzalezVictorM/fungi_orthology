@@ -3,22 +3,27 @@ import json
 import requests
 import time
 import pandas as pd
+import openpyxl
 import logging
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
 from config import JGI_API_BASE_URL, FILES_PER_PAGE, REQUEST_DELAY
-from credentials import HEADERS, COOKIES
+from src.credentials import HEADERS, COOKIES
 
-def download_mycocosm_fungi_table(url: str) -> pd.DataFrame:
+
+def download_mycocosm_fungi_table(url: str, local_xlsx: str) -> pd.DataFrame:
     """
     Downloads the HTML table from the given MycoCosm URL and returns it as a DataFrame.
+    If the download fails, attempts to load and wrangle a local Excel file.
+    If both fail, instructs the user to manually download the table.
 
     Args:
         url (str): The URL of the web page containing the table.
+        local_xlsx (str): Path to a local Excel file to use as a fallback.
 
     Returns:
-        pd.DataFrame: The table data as a pandas DataFrame.
+        pd.DataFrame: The table data as a pandas DataFrame, or None if unavailable.
     """
     try:
         response = requests.get(url, cookies=COOKIES, headers=HEADERS)
@@ -61,6 +66,70 @@ def download_mycocosm_fungi_table(url: str) -> pd.DataFrame:
 
     except Exception as e:
         logging.error(f"Error downloading table: {e}")
+        # Try to load local Excel file
+        if os.path.exists(local_xlsx):
+            try:
+                # Load with pandas for values
+                df = pd.read_excel(local_xlsx)
+                # Load with openpyxl for hyperlinks
+                wb = openpyxl.load_workbook(local_xlsx, data_only=True)
+                ws = wb.active
+                # Find the column indices for "Name" and "Published"
+                header_row = next(ws.iter_rows(min_row=1, max_row=1))
+                name_col_idx = None
+                published_col_idx = None
+                for idx, cell in enumerate(header_row):
+                    if cell.value == "Name":
+                        name_col_idx = idx
+                    if cell.value == "Published":
+                        published_col_idx = idx
+                # Extract Name_link and Published_link
+                name_links = []
+                published_links = []
+                for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
+                    # Name link
+                    if name_col_idx is not None:
+                        cell = row[name_col_idx]
+                        if cell.hyperlink:
+                            name_links.append(cell.hyperlink.target)
+                        else:
+                            name_links.append(None)
+                    else:
+                        name_links.append(None)
+                    # Published link
+                    if published_col_idx is not None:
+                        cell = row[published_col_idx]
+                        if cell.hyperlink:
+                            published_links.append(cell.hyperlink.target)
+                        else:
+                            published_links.append(None)
+                    else:
+                        published_links.append(None)
+                if name_col_idx is not None:
+                    df['Name_link'] = name_links
+                    df['portal'] = df['Name_link'].str.replace('https://mycocosm.jgi.doe.gov/', '', regex=False)
+                else:
+                    df['portal'] = df['Name'].astype(str).str.replace('https://mycocosm.jgi.doe.gov/', '', regex=False)
+                if published_col_idx is not None:
+                    df['Published_link'] = published_links
+                    df['reference'] = df['Published_link']
+                elif 'Published' in df.columns:
+                    df['reference'] = df['Published']
+                
+                df = df.loc[:, ~df.columns.str.endswith('_link')]
+                
+                logging.info(f"Loaded and wrangled local Excel file: {local_xlsx}")
+                return df
+            except Exception as e2:
+                logging.error(f"Failed to load or wrangle local Excel file: {e2}")
+        # If both fail, instruct user to manually download
+        print(
+            "\n❌ Could not download the MycoCosm fungi table automatically and no valid local file was found.\n"
+            "Please manually download the table as Excel from:\n"
+            "    https://mycocosm.jgi.doe.gov/fungi/fungi.info.html\n"
+            "and save it as:\n"
+            f"    {local_xlsx}\n"
+        )
         return None
 
 def fetch_portal_json(organism_id: str, header: dict, out_dir: str) -> bool:
