@@ -256,3 +256,24 @@ def find_new_proteomes(
         warnings.warn("Missing 'portal' or 'reference' columns in one of the DataFrames. Marking all as new.")
         df['new_proteome'] = True
     return df
+
+def case_get(d, *keys, default=None):
+    """
+    Case-insensitive dictionary get with fallbacks.
+
+    Args:
+        d (dict): Dictionary to search.
+        *keys: Keys to try (in order).
+        default: Value to return if none of the keys are found.
+
+    Returns:
+        Value from the dictionary if found (case-insensitive), else default.
+    """
+    for k in keys:
+        if k in d:
+            return d[k]
+        k_low = str(k).lower()
+        for dk in d:
+            if str(dk).lower() == k_low:
+                return d[dk]
+    return default
