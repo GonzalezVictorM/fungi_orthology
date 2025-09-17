@@ -1,4 +1,4 @@
-#!/bin/bash -l
+#!/bin/bash
 #SBATCH --account=project_2015320
 #SBATCH --job-name=launch_iprscan
 #SBATCH --output=local_data/logs/launch_iprscan_%J.out
@@ -16,4 +16,4 @@ module load interproscan
 
 chmod +x src/batch-interproscan.sh
 
-src/batch-interproscan.sh
+srun src/batch-interproscan.sh
