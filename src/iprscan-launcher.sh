@@ -15,7 +15,7 @@ SEQTYPE="p"
 APPLICATIONS="CDD,Pfam,PANTHER,SMART,SUPERFAMILY"
 
 # Throttle: max number of *top-level* cluster_interproscan jobs in queue
-MAX_ACTIVE=3
+MAX_ACTIVE=2
 
 # --- Prep ---
 mkdir -p "$OUT_DIR" "$LOG_DIR"
@@ -106,7 +106,7 @@ for FASTA in "${FA_FILES[@]}"; do
     fi
 
     # Give SLURM a few seconds to register the job
-    sleep 60
+    sleep 120
 
 done
 
