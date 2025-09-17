@@ -9,13 +9,13 @@ IN_DIR="$DATA_DIR/proteomes/test"
 OUT_DIR="$DATA_DIR/interproscan_results"
 LOG_DIR="$DATA_DIR/logs"
 
-THREADS=16                          # threads per InterProScan *subtask*
+THREADS=16
 FORMAT="TSV"
 SEQTYPE="p"
 APPLICATIONS="CDD,Pfam,PANTHER,SMART,SUPERFAMILY"
 
 # Throttle: max number of *top-level* cluster_interproscan jobs in queue
-MAX_ACTIVE=2                       # tune to your project limits
+MAX_ACTIVE=2
 
 # --- Prep ---
 mkdir -p "$OUT_DIR" "$LOG_DIR"
@@ -35,24 +35,20 @@ skipped=0
 
 # Helper: count active jobs with our name prefix
 job_count() {
-    # Grep by name prefix to avoid counting unrelated jobs
     squeue -u "$USER" -h -o "%j" | awk '/^iprscan_/ {c++} END{print c+0}'
 }
 
 for FASTA in "${FA_FILES[@]}"; do
     echo
     echo "----------------------------------------"
-    echo "[DEBUG] Considering: $FASTA"
-    
     BASENAME="$(basename "$FASTA")"
     STEM="${BASENAME%.*}"
     OUT_BASENAME="$OUT_DIR/${STEM}"
 
-    echo "[DEBUG] Checking existing outputs for $OUT_BASENAME"
     # Skip if final output exists
     if [[ -s "${OUT_BASENAME}.tsv.gz" ]] || \
-        [[ -s "${OUT_BASENAME}.tsv"   ]] || \
-        [[ -s "${OUT_BASENAME}"       ]]; then
+       [[ -s "${OUT_BASENAME}.tsv"   ]] || \
+       [[ -s "${OUT_BASENAME}"       ]]; then
         echo "[SKIP] $BASENAME -> output exists (${OUT_BASENAME}.tsv[.gz])"
         ((skipped++))
         continue
@@ -61,7 +57,6 @@ for FASTA in "${FA_FILES[@]}"; do
     # Throttle top-level submissions
     while true; do
         ACTIVE=$(job_count)
-        echo "[DEBUG] Active iprscan jobs: $ACTIVE (limit $MAX_ACTIVE)"
         if (( ACTIVE < MAX_ACTIVE )); then
             break
         fi
@@ -69,22 +64,15 @@ for FASTA in "${FA_FILES[@]}"; do
         sleep 60
     done
 
-    # Clean '*' into a temp copy (headers kept). Keep per-proteome temp under OUT_DIR.
+    # Clean '*' into a temp copy (headers kept)
     CLEANED="${OUT_DIR}/${STEM}.clean.fasta"
-    echo "[DEBUG] Cleaning '$FASTA' -> '$CLEANED'"
     sed -e '/^>/! s/\*//g' "$FASTA" > "$CLEANED"
 
     # Unique job name per proteome helps filtering
     JOB_NAME="iprscan_${STEM}"
     SUBMIT_LOG="${LOG_DIR}/${JOB_NAME}.submit.log"
 
-    # Submit via the Puhti wrapper. It will create its own sub array.
-    # NOTE: cluster_interproscan typically takes a basename for -o (no .tsv),
-    # and writes logs in your cwd or a set log dir; adjust if your module differs.
     echo "[SUBMIT] $BASENAME as $JOB_NAME"
-
-    # Most wrappers submit with sbatch internally and return fast.
-    # We also tee stdout/stderr to logs for traceability.
     {
         echo "===== cluster_interproscan submit ====="
         date
@@ -98,25 +86,22 @@ for FASTA in "${FA_FILES[@]}"; do
         echo "Apps:     $APPLICATIONS"
     } > "$SUBMIT_LOG"
 
-    # The actual wrapper call
     if cluster_interproscan \
-            -i "$CLEANED" \
-            -f "$FORMAT" \
-            --cpu "$THREADS" \
-            -o "$OUT_BASENAME" \
-            -t "$SEQTYPE" \
-            -appl "$APPLICATIONS" \
-            --goterms \
-            --pathways \
-            --jobname "$JOB_NAME" \
-            >> "$SUBMIT_LOG" 2>&1; then
+          -i "$CLEANED" \
+          -f "$FORMAT" \
+          --cpu "$THREADS" \
+          -o "$OUT_BASENAME" \
+          -t "$SEQTYPE" \
+          -appl "$APPLICATIONS" \
+          --goterms \
+          --pathways \
+          >> "$SUBMIT_LOG" 2>&1; then
         ((submitted++))
         echo "[OK] Submitted $JOB_NAME (details: $SUBMIT_LOG)"
+        # Optional: rm -f "$CLEANED" || true
     else
         echo "[WARN] Submission failed for $BASENAME (see $SUBMIT_LOG)"
-        # keep going to the next file
     fi
-
 done
 
 echo
