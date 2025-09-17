@@ -5,7 +5,7 @@ set -euo pipefail
 DATA_DIR="local_data"
 DATA_DIR="$(readlink -f "$DATA_DIR")"
 
-IN_DIR="$DATA_DIR/proteomes/test"
+IN_DIR="$DATA_DIR/proteomes/clean"
 OUT_DIR="$DATA_DIR/interproscan_results"
 LOG_DIR="$DATA_DIR/logs"
 
@@ -106,7 +106,7 @@ for FASTA in "${FA_FILES[@]}"; do
     fi
 
     # Give SLURM a few seconds to register the job
-    sleep 5
+    sleep 60
 
 done
 
