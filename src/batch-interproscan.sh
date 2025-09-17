@@ -8,6 +8,7 @@ DATA_DIR="$(readlink -f "$DATA_DIR")"
 IN_DIR="$DATA_DIR/proteomes/test"
 OUT_DIR="$DATA_DIR/interproscan_results"
 LOG_DIR="$DATA_DIR/logs"
+
 THREADS=16                          # threads per InterProScan *subtask*
 FORMAT="TSV"
 SEQTYPE="p"
@@ -35,14 +36,19 @@ skipped=0
 # Helper: count active jobs with our name prefix
 job_count() {
     # Grep by name prefix to avoid counting unrelated jobs
-    squeue -u "$USER" -h -o "%j" | grep -E "^iprscan_" | wc -l | tr -d ' '
+    squeue -u "$USER" -h -o "%j" | awk '/^iprscan_/ {c++} END{print c+0}'
 }
 
 for FASTA in "${FA_FILES[@]}"; do
+    echo
+    echo "----------------------------------------"
+    echo "[DEBUG] Considering: $FASTA"
+    
     BASENAME="$(basename "$FASTA")"
     STEM="${BASENAME%.*}"
     OUT_BASENAME="$OUT_DIR/${STEM}"
 
+    echo "[DEBUG] Checking existing outputs for $OUT_BASENAME"
     # Skip if final output exists
     if [[ -s "${OUT_BASENAME}.tsv.gz" ]] || \
         [[ -s "${OUT_BASENAME}.tsv"   ]] || \
@@ -55,6 +61,7 @@ for FASTA in "${FA_FILES[@]}"; do
     # Throttle top-level submissions
     while true; do
         ACTIVE=$(job_count)
+        echo "[DEBUG] Active iprscan jobs: $ACTIVE (limit $MAX_ACTIVE)"
         if (( ACTIVE < MAX_ACTIVE )); then
             break
         fi
@@ -64,26 +71,32 @@ for FASTA in "${FA_FILES[@]}"; do
 
     # Clean '*' into a temp copy (headers kept). Keep per-proteome temp under OUT_DIR.
     CLEANED="${OUT_DIR}/${STEM}.clean.fasta"
+    echo "[DEBUG] Cleaning '$FASTA' -> '$CLEANED'"
     sed -e '/^>/! s/\*//g' "$FASTA" > "$CLEANED"
 
     # Unique job name per proteome helps filtering
     JOB_NAME="iprscan_${STEM}"
+    SUBMIT_LOG="${LOG_DIR}/${JOB_NAME}.submit.log"
 
     # Submit via the Puhti wrapper. It will create its own sub array.
     # NOTE: cluster_interproscan typically takes a basename for -o (no .tsv),
     # and writes logs in your cwd or a set log dir; adjust if your module differs.
-    echo "[SUBMIT] $BASENAME -> ${OUT_BASENAME} (cpu=$THREADS)"
-    module load interproscan >/dev/null 2>&1 || true
+    echo "[SUBMIT] $BASENAME as $JOB_NAME"
 
     # Most wrappers submit with sbatch internally and return fast.
     # We also tee stdout/stderr to logs for traceability.
     {
-        echo "Submitting $JOB_NAME at $(date)"
+        echo "===== cluster_interproscan submit ====="
+        date
+        echo "User:     $USER"
+        echo "JobName:  $JOB_NAME"
         echo "Input:    $CLEANED"
         echo "Output:   $OUT_BASENAME"
         echo "Threads:  $THREADS"
+        echo "Format:   $FORMAT"
+        echo "SeqType:  $SEQTYPE"
         echo "Apps:     $APPLICATIONS"
-    } > "${LOG_DIR}/${JOB_NAME}.submit.log"
+    } > "$SUBMIT_LOG"
 
     # The actual wrapper call
     if cluster_interproscan \
@@ -96,18 +109,21 @@ for FASTA in "${FA_FILES[@]}"; do
             --goterms \
             --pathways \
             --jobname "$JOB_NAME" \
-            >> "${LOG_DIR}/${JOB_NAME}.submit.log" 2>&1; then
+            >> "$SUBMIT_LOG" 2>&1; then
         ((submitted++))
+        echo "[OK] Submitted $JOB_NAME (details: $SUBMIT_LOG)"
     else
-        echo "[WARN] Submission failed for $BASENAME (see ${LOG_DIR}/${JOB_NAME}.submit.log)"
+        echo "[WARN] Submission failed for $BASENAME (see $SUBMIT_LOG)"
         # keep going to the next file
     fi
 
 done
 
+echo
 echo "=== Submission summary ==="
 echo "Submitted: $submitted"
 echo "Skipped:   $skipped"
-echo "Active now: $(squeue -u "$USER" -h | wc -l | tr -d ' ') jobs total; $(squeue -u "$USER" -h -o "%j" | grep -E "^iprscan_" | wc -l | tr -d ' ') iprscan."
+echo "Active now (all jobs): $(squeue -u "$USER" -h | wc -l | tr -d ' ')"
+echo "Active iprscan jobs:   $(job_count)"
 echo "Outputs:   $OUT_DIR"
 echo "Logs:      $LOG_DIR"
