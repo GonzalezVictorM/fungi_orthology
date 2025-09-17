@@ -3,7 +3,7 @@
 #SBATCH --job-name=iprscan_batch
 #SBATCH --output=local_data/logs/%x_%j.out
 #SBATCH --error=local_data/logs/%x_%j.stderr
-#SBATCH --time=24:00:00
+#SBATCH --time=48:00:00
 #SBATCH --cpus-per-task=1
 #SBATCH --mem-per-cpu=2G
 #SBATCH --partition=small
@@ -33,7 +33,7 @@ DATA_DIR="local_data"
 DATA_DIR="$(readlink -f "$DATA_DIR")"
 
 SET_DIR="$DATA_DIR/proteomes"
-IN_DIR="$SET_DIR/test"
+IN_DIR="$SET_DIR/clean"
 OUT_DIR="$DATA_DIR/interproscan_results"
 
 mkdir -p "$OUT_DIR"
