@@ -86,23 +86,32 @@ for FASTA in "${FA_FILES[@]}"; do
         echo "Apps:     $APPLICATIONS"
     } > "$SUBMIT_LOG"
 
-    if cluster_interproscan \
-          -i "$CLEANED" \
-          -f "$FORMAT" \
-          --cpu "$THREADS" \
-          -o "$OUT_BASENAME" \
-          -t "$SEQTYPE" \
-          -appl "$APPLICATIONS" \
-          --goterms \
-          --pathways \
-          >> "$SUBMIT_LOG" 2>&1; then
+    if (
+        cluster_interproscan \
+            -i "$CLEANED" \
+            -f "$FORMAT" \
+            --cpu "$THREADS" \
+            -o "$OUT_BASENAME" \
+            -t "$SEQTYPE" \
+            -appl "$APPLICATIONS" \
+            --goterms \
+            --pathways \
+            >> "$SUBMIT_LOG" 2>&1
+        ) & then
         ((submitted++))
         echo "[OK] Submitted $JOB_NAME (details: $SUBMIT_LOG)"
         # Optional: rm -f "$CLEANED" || true
     else
         echo "[WARN] Submission failed for $BASENAME (see $SUBMIT_LOG)"
     fi
+
+    # Give SLURM a few seconds to register the job
+    sleep 5
+
 done
+
+# Wait for all backgrounded submissions to finish
+wait
 
 echo
 echo "=== Submission summary ==="
