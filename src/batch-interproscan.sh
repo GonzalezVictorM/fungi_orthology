@@ -22,8 +22,8 @@ shopt -s nullglob
 mapfile -t FA_FILES < <(printf '%s\0' "$IN_DIR"/*.fasta | xargs -0 -n1 -I{} realpath "{}")
 
 if (( ${#FA_FILES[@]} == 0 )); then
-  echo "No FASTA files found in $IN_DIR"
-  exit 1
+    echo "No FASTA files found in $IN_DIR"
+    exit 1
 fi
 
 echo "Found ${#FA_FILES[@]} FASTA files."
@@ -34,72 +34,74 @@ skipped=0
 
 # Helper: count active jobs with our name prefix
 job_count() {
-  # Grep by name prefix to avoid counting unrelated jobs
-  squeue -u "$USER" -h -o "%j" | grep -E "^iprscan_" | wc -l | tr -d ' '
+    # Grep by name prefix to avoid counting unrelated jobs
+    squeue -u "$USER" -h -o "%j" | grep -E "^iprscan_" | wc -l | tr -d ' '
 }
 
 for FASTA in "${FA_FILES[@]}"; do
-  BASENAME="$(basename "$FASTA")"
-  STEM="${BASENAME%.*}"
-  OUT_BASENAME="$OUT_DIR/${STEM}"
+    BASENAME="$(basename "$FASTA")"
+    STEM="${BASENAME%.*}"
+    OUT_BASENAME="$OUT_DIR/${STEM}"
 
-  # Skip if final output exists
-  if [[ -s "${OUT_BASENAME}.tsv.gz" || -s "${OUT_BASENAME}.tsv" || -s "${OUT_BASENAME}"]]; then
-    echo "[SKIP] $BASENAME -> output exists (${OUT_BASENAME}.tsv[.gz])"
-    ((skipped++))
-    continue
-  fi
-
-  # Throttle top-level submissions
-  while true; do
-    ACTIVE=$(job_count)
-    if (( ACTIVE < MAX_ACTIVE )); then
-      break
+    # Skip if final output exists
+    if [[ -s "${OUT_BASENAME}.tsv.gz" ]] || \
+        [[ -s "${OUT_BASENAME}.tsv"   ]] || \
+        [[ -s "${OUT_BASENAME}"       ]]; then
+        echo "[SKIP] $BASENAME -> output exists (${OUT_BASENAME}.tsv[.gz])"
+        ((skipped++))
+        continue
     fi
-    echo "[WAIT] Active iprscan jobs: $ACTIVE (limit $MAX_ACTIVE). Sleeping 60s..."
-    sleep 60
-  done
 
-  # Clean '*' into a temp copy (headers kept). Keep per-proteome temp under OUT_DIR.
-  CLEANED="${OUT_DIR}/${STEM}.clean.fasta"
-  sed -e '/^>/! s/\*//g' "$FASTA" > "$CLEANED"
+    # Throttle top-level submissions
+    while true; do
+        ACTIVE=$(job_count)
+        if (( ACTIVE < MAX_ACTIVE )); then
+            break
+        fi
+        echo "[WAIT] Active iprscan jobs: $ACTIVE (limit $MAX_ACTIVE). Sleeping 60s..."
+        sleep 60
+    done
 
-  # Unique job name per proteome helps filtering
-  JOB_NAME="iprscan_${STEM}"
+    # Clean '*' into a temp copy (headers kept). Keep per-proteome temp under OUT_DIR.
+    CLEANED="${OUT_DIR}/${STEM}.clean.fasta"
+    sed -e '/^>/! s/\*//g' "$FASTA" > "$CLEANED"
 
-  # Submit via the Puhti wrapper. It will create its own sub array.
-  # NOTE: cluster_interproscan typically takes a basename for -o (no .tsv),
-  # and writes logs in your cwd or a set log dir; adjust if your module differs.
-  echo "[SUBMIT] $BASENAME -> ${OUT_BASENAME} (cpu=$THREADS)"
-  module load interproscan >/dev/null 2>&1 || true
+    # Unique job name per proteome helps filtering
+    JOB_NAME="iprscan_${STEM}"
 
-  # Most wrappers submit with sbatch internally and return fast.
-  # We also tee stdout/stderr to logs for traceability.
-  {
-    echo "Submitting $JOB_NAME at $(date)"
-    echo "Input:    $CLEANED"
-    echo "Output:   $OUT_BASENAME"
-    echo "Threads:  $THREADS"
-    echo "Apps:     $APPLICATIONS"
-  } > "${LOG_DIR}/${JOB_NAME}.submit.log"
+    # Submit via the Puhti wrapper. It will create its own sub array.
+    # NOTE: cluster_interproscan typically takes a basename for -o (no .tsv),
+    # and writes logs in your cwd or a set log dir; adjust if your module differs.
+    echo "[SUBMIT] $BASENAME -> ${OUT_BASENAME} (cpu=$THREADS)"
+    module load interproscan >/dev/null 2>&1 || true
 
-  # The actual wrapper call
-  if cluster_interproscan \
-        -i "$CLEANED" \
-        -f "$FORMAT" \
-        --cpu "$THREADS" \
-        -o "$OUT_BASENAME" \
-        -t "$SEQTYPE" \
-        -appl "$APPLICATIONS" \
-        --goterms \
-        --pathways \
-        --jobname "$JOB_NAME" \
-        >> "${LOG_DIR}/${JOB_NAME}.submit.log" 2>&1; then
-    ((submitted++))
-  else
-    echo "[WARN] Submission failed for $BASENAME (see ${LOG_DIR}/${JOB_NAME}.submit.log)"
-    # keep going to the next file
-  fi
+    # Most wrappers submit with sbatch internally and return fast.
+    # We also tee stdout/stderr to logs for traceability.
+    {
+        echo "Submitting $JOB_NAME at $(date)"
+        echo "Input:    $CLEANED"
+        echo "Output:   $OUT_BASENAME"
+        echo "Threads:  $THREADS"
+        echo "Apps:     $APPLICATIONS"
+    } > "${LOG_DIR}/${JOB_NAME}.submit.log"
+
+    # The actual wrapper call
+    if cluster_interproscan \
+            -i "$CLEANED" \
+            -f "$FORMAT" \
+            --cpu "$THREADS" \
+            -o "$OUT_BASENAME" \
+            -t "$SEQTYPE" \
+            -appl "$APPLICATIONS" \
+            --goterms \
+            --pathways \
+            --jobname "$JOB_NAME" \
+            >> "${LOG_DIR}/${JOB_NAME}.submit.log" 2>&1; then
+        ((submitted++))
+    else
+        echo "[WARN] Submission failed for $BASENAME (see ${LOG_DIR}/${JOB_NAME}.submit.log)"
+        # keep going to the next file
+    fi
 
 done
 
