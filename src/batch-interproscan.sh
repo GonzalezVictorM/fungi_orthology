@@ -35,7 +35,7 @@ skipped=0
 
 # Helper: count active jobs with our name prefix
 job_count() {
-    squeue -u "$USER" -h -o "%j" | awk '/^iprscan_/ {c++} END{print c+0}'
+    squeue -u "$USER" -h -o "%j" | awk '/^iprscan/ {c++} END{print c+0}'
 }
 
 for FASTA in "${FA_FILES[@]}"; do
@@ -98,7 +98,7 @@ for FASTA in "${FA_FILES[@]}"; do
             --pathways \
             >> "$SUBMIT_LOG" 2>&1
         ) & then
-        ((submitted++))
+        ((submitted++)) || true
         echo "[OK] Submitted $JOB_NAME (details: $SUBMIT_LOG)"
         # Optional: rm -f "$CLEANED" || true
     else
