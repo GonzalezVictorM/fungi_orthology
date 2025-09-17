@@ -15,7 +15,7 @@ SEQTYPE="p"
 APPLICATIONS="CDD,Pfam,PANTHER,SMART,SUPERFAMILY"
 
 # Throttle: max number of *top-level* cluster_interproscan jobs in queue
-MAX_ACTIVE=2
+MAX_ACTIVE=3
 
 # --- Prep ---
 mkdir -p "$OUT_DIR" "$LOG_DIR"
@@ -47,10 +47,10 @@ for FASTA in "${FA_FILES[@]}"; do
 
     # Skip if final output exists
     if [[ -s "${OUT_BASENAME}.tsv.gz" ]] || \
-       [[ -s "${OUT_BASENAME}.tsv"   ]] || \
-       [[ -s "${OUT_BASENAME}"       ]]; then
+        [[ -s "${OUT_BASENAME}.tsv"   ]] || \
+        [[ -s "${OUT_BASENAME}"       ]]; then
         echo "[SKIP] $BASENAME -> output exists (${OUT_BASENAME}.tsv[.gz])"
-        ((skipped++))
+        ((skipped++)) || true
         continue
     fi
 
