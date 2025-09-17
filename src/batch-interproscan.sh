@@ -14,6 +14,6 @@ module load biokit
 
 module load interproscan
 
-chmod +x src/batch-interproscan.sh
+chmod +x src/iprscan-launcher.sh
 
-srun src/batch-interproscan.sh
+srun src/iprscan-launcher.sh
