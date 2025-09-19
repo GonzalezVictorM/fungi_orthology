@@ -5,8 +5,8 @@ set -euo pipefail
 DATA_DIR="local_data"
 DATA_DIR="$(readlink -f "$DATA_DIR")"
 
-IN_DIR="$DATA_DIR/proteomes/clean"
-OUT_DIR="$DATA_DIR/interproscan_results"
+IN_DIR="$DATA_DIR/interproscan_results"
+OUT_DIR="$DATA_DIR/interproscan_reruns"
 LOG_DIR="$DATA_DIR/logs/iprscan_logs"
 
 THREADS=16
@@ -20,14 +20,14 @@ MAX_ACTIVE=1
 # --- Prep ---
 mkdir -p "$OUT_DIR" "$LOG_DIR"
 shopt -s nullglob
-mapfile -t FA_FILES < <(printf '%s\0' "$IN_DIR"/*.fasta | xargs -0 -n1 -I{} realpath "{}")
+mapfile -t FA_FILES < <(printf '%s\0' "$IN_DIR"/*_sequences | xargs -0 -n1 -I{} realpath "{}")
 
 if (( ${#FA_FILES[@]} == 0 )); then
-    echo "No FASTA files found in $IN_DIR"
+    echo "No FAILED files found in $IN_DIR"
     exit 1
 fi
 
-echo "Found ${#FA_FILES[@]} FASTA files."
+echo "Found ${#FA_FILES[@]} FAILED files."
 echo "Submitting with MAX_ACTIVE=$MAX_ACTIVE"
 
 submitted=0
@@ -43,7 +43,7 @@ for FASTA in "${FA_FILES[@]}"; do
     echo "----------------------------------------"
     BASENAME="$(basename "$FASTA")"
     STEM="${BASENAME%.*}"
-    OUT_BASENAME="$OUT_DIR/${STEM}"
+    OUT_BASENAME="$OUT_DIR/${STEM}.rerun"
 
     # Skip if final output exists
     if [[ -s "${OUT_BASENAME}.tsv.gz" ]] || \
